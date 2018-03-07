@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/d4l3k/messagediff/testdata"
+	"github.com/the-infatuation/messagediff/testdata"
 )
 
 type testStruct struct {
