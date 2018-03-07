@@ -28,7 +28,13 @@ func PrettyDiff(a, b interface{}) (string, bool) {
 // DeepDiff does a deep comparison and returns the results.
 func DeepDiff(a, b interface{}) (*Diff, bool) {
 	d := newDiff()
-	return d, d.diff(reflect.ValueOf(a), reflect.ValueOf(b), nil)
+	return d, d.diff(reflect.ValueOf(a), reflect.ValueOf(b), nil, false)
+}
+
+// DeepDiffRepeatsAsSets same as DeepDiff except we treat arrays/slices as sets
+func DeepDiffRepeatsAsSets(a, b interface{}) (*Diff, bool) {
+	d := newDiff()
+	return d, d.diff(reflect.ValueOf(a), reflect.ValueOf(b), nil, true)
 }
 
 func newDiff() *Diff {
@@ -40,7 +46,16 @@ func newDiff() *Diff {
 	}
 }
 
-func (d *Diff) diff(aVal, bVal reflect.Value, path Path) bool {
+func contains(sv reflect.Value, val interface{}) bool {
+	for i := 0; i < sv.Len(); i++ {
+		if _, ok := DeepDiffRepeatsAsSets(sv.Index(i).Interface(), val); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *Diff) diff(aVal, bVal reflect.Value, path Path, repeatsAsSets bool) bool {
 	// The array underlying `path` could be modified in subsequent
 	// calls. Make sure we have a local copy.
 	localPath := make(Path, len(path))
@@ -111,9 +126,13 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path) bool {
 		aLen := aVal.Len()
 		bLen := bVal.Len()
 		for i := 0; i < min(aLen, bLen); i++ {
-			localPath := append(localPath, SliceIndex(i))
-			if eq := d.diff(aVal.Index(i), bVal.Index(i), localPath); !eq {
-				equal = false
+			if repeatsAsSets {
+				equal = contains(aVal, bVal.Index(i).Interface())
+			} else {
+				localPath := append(path, SliceIndex(i))
+				if eq := d.diff(aVal.Index(i), bVal.Index(i), localPath, repeatsAsSets); !eq {
+					equal = false
+				}
 			}
 		}
 		if aLen > bLen {
@@ -137,7 +156,7 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path) bool {
 			if !bI.IsValid() {
 				d.Removed[&localPath] = aI.Interface()
 				equal = false
-			} else if eq := d.diff(aI, bI, localPath); !eq {
+			} else if eq := d.diff(aI, bI, localPath, repeatsAsSets); !eq {
 				equal = false
 			}
 		}
@@ -161,12 +180,12 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path) bool {
 			localPath := append(localPath, StructField(field.Name))
 			aI := unsafeReflectValue(aVal.FieldByIndex(index))
 			bI := unsafeReflectValue(bVal.FieldByIndex(index))
-			if eq := d.diff(aI, bI, localPath); !eq {
+			if eq := d.diff(aI, bI, localPath, repeatsAsSets); !eq {
 				equal = false
 			}
 		}
 	case reflect.Ptr:
-		equal = d.diff(aVal.Elem(), bVal.Elem(), localPath)
+		equal = d.diff(aVal.Elem(), bVal.Elem(), localPath, repeatsAsSets)
 	default:
 		if reflect.DeepEqual(aVal.Interface(), bVal.Interface()) {
 			equal = true
