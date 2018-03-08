@@ -122,7 +122,7 @@ func (d *Diff) diff(aVal, bVal reflect.Value, path Path, opts *MergedOptions) bo
 		aLen := aVal.Len()
 		bLen := bVal.Len()
 		for i := 0; i < min(aLen, bLen); i++ {
-			if opts.allSets && inFields {
+			if opts.allSets || inFields {
 				equal = contains(aVal, bVal.Index(i).Interface())
 			} else {
 				localPath := append(path, SliceIndex(i))
