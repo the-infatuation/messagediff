@@ -42,7 +42,7 @@ func Field(x interface{}, name string) *FieldData {
 
 // TreatRepeatedFieldsAsSets
 func TreatRepeatedFieldsAsSets() *Option {
-	return &Option{"allsets", true}
+	return &Option{"all", true}
 }
 
 // TreatAsSet
