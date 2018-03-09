@@ -46,7 +46,7 @@ func TreatRepeatedFieldsAsSets() *Option {
 }
 
 // TreatAsSet
-func TreatAsSet(f FieldData) *Option {
+func TreatAsSet(f *FieldData) *Option {
 	return &Option{"field", f}
 }
 
