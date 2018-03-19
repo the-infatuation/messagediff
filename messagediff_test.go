@@ -191,3 +191,28 @@ func TestIgnoreTag(t *testing.T) {
 		t.Errorf("Expected diff to be:\n%v\nbut got:\n%v", expect, diff)
 	}
 }
+
+type message struct {
+	Name string
+	List list
+}
+
+type list []string
+
+func TestRepeatedFieldAsSets(t *testing.T) {
+	a := &message{Name: "A", List: list{"nyc", "dc", "sf"}}
+	b := &message{Name: "A", List: list{"dc", "nyc", "sf"}}
+	_, ok := DeepDiffWithOptions(a, b, TreatRepeatedFieldsAsSets())
+	if !ok {
+		t.Errorf("Expected list items to be equal")
+	}
+}
+
+func TestMessageDiffasSets(t *testing.T) {
+	a := &message{Name: "A", List: list{"nyc", "dc", "sf"}}
+	b := &message{Name: "A", List: list{"dc", "nyc", "sf"}}
+	_, ok := DeepDiffWithOptions(a, b, TreatAsSet(Field((list)(nil), "list")))
+	if !ok {
+		t.Errorf("Expected list items to be equal")
+	}
+}
